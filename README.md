@@ -574,3 +574,98 @@ python manage.py migrate
 3. 定期轮换JWT密钥
 4. 限制API请求频率
 5. 监控异常登录行为
+
+## Docker和PostgreSQL部署
+
+我们已经添加了Docker支持，可以使用Docker和PostgreSQL来部署应用。
+
+### 准备工作
+
+1. 安装Docker和Docker Compose
+2. 配置环境变量
+
+### 配置环境变量
+
+1. 复制示例环境文件
+   ```bash
+   cp .env.example .env
+   ```
+
+2. 修改`.env`文件中的配置，特别是数据库连接信息:
+   ```
+   # PostgreSQL配置
+   POSTGRES_USER=dify_user
+   POSTGRES_PASSWORD=your_secure_password
+   POSTGRES_DB=dify_db
+
+   # 数据库URL
+   DATABASE_URL=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+   ```
+
+3. 修改其他配置，如`SECRET_KEY`、`ALLOWED_HOSTS`和微信登录信息
+
+### 使用Docker Compose部署
+
+1. 构建并启动服务
+   ```bash
+   docker-compose up --build -d
+   ```
+
+2. 创建超级用户
+   ```bash
+   docker-compose exec web python manage.py createsuperuser
+   ```
+
+3. 访问应用
+   - Web应用: http://localhost:8000
+   - Admin界面: http://localhost:8000/admin
+
+### 常用Docker命令
+
+- 启动服务: `docker-compose up -d`
+- 停止服务: `docker-compose down`
+- 查看日志: `docker-compose logs -f web`
+- 进入容器: `docker-compose exec web bash`
+- 重启服务: `docker-compose restart web`
+
+### 数据库管理
+
+- 备份数据库:
+  ```bash
+  docker-compose exec db pg_dump -U ${POSTGRES_USER} ${POSTGRES_DB} > backup.sql
+  ```
+
+- 恢复数据库:
+  ```bash
+  cat backup.sql | docker-compose exec -T db psql -U ${POSTGRES_USER} ${POSTGRES_DB}
+  ```
+
+### 从SQLite迁移到PostgreSQL
+
+如果您已经在使用SQLite，可以按照以下步骤迁移到PostgreSQL:
+
+1. 备份SQLite数据
+   ```bash
+   python manage.py dumpdata --exclude auth.permission --exclude contenttypes > data.json
+   ```
+
+2. 配置PostgreSQL连接
+   - 修改`.env`文件，设置`DATABASE_URL`为PostgreSQL连接串
+
+3. 应用数据库迁移
+   ```bash
+   docker-compose exec web python manage.py migrate
+   ```
+
+4. 导入数据
+   ```bash
+   docker-compose exec web python manage.py loaddata data.json
+   ```
+
+## 生产环境注意事项
+
+1. 确保修改`SECRET_KEY`为随机值
+2. 设置`DEBUG=False`
+3. 配置`ALLOWED_HOSTS`为您的域名
+4. 考虑使用HTTPS，可以通过Nginx配置SSL
+5. 定期备份数据库

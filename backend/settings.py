@@ -21,6 +21,8 @@ env = environ.Env(
     DATABASE_URL=(str, "sqlite:///db.sqlite3"),
     ALLOWED_HOSTS=(list, ["localhost", "127.0.0.1"]),
     CORS_ALLOWED_ORIGINS=(list, ["http://localhost:3000", "http://127.0.0.1:3000"]),
+    STATIC_ROOT=(str, None),
+    MEDIA_ROOT=(str, None),
 )
 
 # 读取.env文件
@@ -141,6 +143,11 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
 STATIC_URL = 'static/'
+STATIC_ROOT = env('STATIC_ROOT', default=os.path.join(BASE_DIR, 'static'))
+
+# Media files
+MEDIA_URL = 'media/'
+MEDIA_ROOT = env('MEDIA_ROOT', default=os.path.join(BASE_DIR, 'media'))
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
