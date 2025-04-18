@@ -62,7 +62,53 @@ class RegisterView(APIView):
         )
 
 class PhonePasswordLoginView(APIView):
-    """手机号密码登录视图"""
+    """
+    手机号密码登录视图
+    ---
+    post:
+        描述: 使用手机号和密码登录
+        参数:
+            - name: phone
+              description: 手机号
+              required: true
+              type: string
+              example: "+8613800138000"
+            - name: password
+              description: 密码
+              required: true
+              type: string
+              example: "password123"
+        响应:
+            200:
+                描述: 登录成功
+                示例:
+                    {
+                        "code": 0,
+                        "message": "登录成功",
+                        "data": {
+                            "user": {
+                                "id": 1,
+                                "username": "user123",
+                                "phone": "+8613800138000",
+                                "email": null,
+                                "is_phone_verified": true,
+                                "date_joined": "2025-04-18T12:00:00Z"
+                            },
+                            "refresh": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+                            "access": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                        },
+                        "pagination": null
+                    }
+            400:
+                描述: 登录失败
+                示例:
+                    {
+                        "code": 1001,
+                        "message": "登录失败",
+                        "data": null,
+                        "pagination": null
+                    }
+    """
     permission_classes = [permissions.AllowAny]
 
     def post(self, request):
@@ -83,7 +129,54 @@ class PhonePasswordLoginView(APIView):
         )
 
 class PhoneCodeLoginView(APIView):
-    """手机号验证码登录视图"""
+    """
+    手机号验证码登录视图
+    ---
+    post:
+        描述: 使用手机号和验证码登录
+        参数:
+            - name: phone
+              description: 手机号
+              required: true
+              type: string
+              example: "+8613800138000"
+            - name: code
+              description: 验证码
+              required: true
+              type: string
+              example: "123456"
+        响应:
+            200:
+                描述: 登录成功
+                示例:
+                    {
+                        "code": 0,
+                        "message": "登录成功",
+                        "data": {
+                            "user": {
+                                "id": 1,
+                                "username": "user123",
+                                "phone": "+8613800138000",
+                                "email": null,
+                                "is_phone_verified": true,
+                                "date_joined": "2025-04-18T12:00:00Z"
+                            },
+                            "refresh": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+                            "access": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+                            "is_new_user": false
+                        },
+                        "pagination": null
+                    }
+            400:
+                描述: 登录失败
+                示例:
+                    {
+                        "code": 1001,
+                        "message": "登录失败",
+                        "data": null,
+                        "pagination": null
+                    }
+    """
     permission_classes = [permissions.AllowAny]
 
     def post(self, request):
@@ -106,7 +199,53 @@ class PhoneCodeLoginView(APIView):
         )
 
 class SendVerificationCodeView(APIView):
-    """发送验证码视图"""
+    """
+    发送验证码视图
+    ---
+    post:
+        描述: 发送手机验证码
+        参数:
+            - name: phone
+              description: 手机号
+              required: true
+              type: string
+              example: "+8613800138000"
+            - name: purpose
+              description: 用途，可选值：register(注册), login(登录), reset_password(重置密码)
+              required: true
+              type: string
+              example: "register"
+        响应:
+            200:
+                描述: 验证码发送成功
+                示例:
+                    {
+                        "code": 0,
+                        "message": "验证码发送成功",
+                        "data": {
+                            "expires_at": "2025-04-18T12:10:00Z"
+                        },
+                        "pagination": null
+                    }
+            400:
+                描述: 验证码发送失败
+                示例:
+                    {
+                        "code": 1006,
+                        "message": "验证码发送失败",
+                        "data": null,
+                        "pagination": null
+                    }
+            500:
+                描述: 服务器错误
+                示例:
+                    {
+                        "code": 2001,
+                        "message": "验证码发送失败",
+                        "data": null,
+                        "pagination": null
+                    }
+    """
     permission_classes = [permissions.AllowAny]
 
     def post(self, request):
@@ -136,7 +275,90 @@ class SendVerificationCodeView(APIView):
         )
 
 class UserProfileView(APIView):
-    """用户信息视图"""
+    """
+    用户信息视图
+    ---
+    get:
+        描述: 获取当前登录用户的信息
+        响应:
+            200:
+                描述: 获取用户信息成功
+                示例:
+                    {
+                        "code": 0,
+                        "message": "获取用户信息成功",
+                        "data": {
+                            "user": {
+                                "id": 1,
+                                "username": "user123",
+                                "phone": "+8613800138000",
+                                "email": "user@example.com",
+                                "is_phone_verified": true,
+                                "date_joined": "2025-04-18T12:00:00Z"
+                            }
+                        },
+                        "pagination": null
+                    }
+            401:
+                描述: 未认证
+                示例:
+                    {
+                        "code": 1002,
+                        "message": "未认证",
+                        "data": null,
+                        "pagination": null
+                    }
+    patch:
+        描述: 更新当前登录用户的信息
+        参数:
+            - name: username
+              description: 用户名
+              required: false
+              type: string
+              example: "new_username"
+            - name: email
+              description: 邮箱
+              required: false
+              type: string
+              example: "user@example.com"
+        响应:
+            200:
+                描述: 更新用户信息成功
+                示例:
+                    {
+                        "code": 0,
+                        "message": "更新用户信息成功",
+                        "data": {
+                            "user": {
+                                "id": 1,
+                                "username": "new_username",
+                                "phone": "+8613800138000",
+                                "email": "user@example.com",
+                                "is_phone_verified": true,
+                                "date_joined": "2025-04-18T12:00:00Z"
+                            }
+                        },
+                        "pagination": null
+                    }
+            400:
+                描述: 更新用户信息失败
+                示例:
+                    {
+                        "code": 1006,
+                        "message": "更新用户信息失败",
+                        "data": null,
+                        "pagination": null
+                    }
+            401:
+                描述: 未认证
+                示例:
+                    {
+                        "code": 1002,
+                        "message": "未认证",
+                        "data": null,
+                        "pagination": null
+                    }
+    """
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
@@ -161,7 +383,40 @@ class UserProfileView(APIView):
         )
 
 class WechatLoginUrlView(APIView):
-    """获取微信登录URL视图"""
+    """
+    获取微信登录URL视图
+    ---
+    post:
+        描述: 获取微信登录URL和状态码
+        参数:
+            - name: redirect_url
+              description: 登录成功后重定向的URL
+              required: true
+              type: string
+              example: "http://localhost:3000/auth/callback"
+        响应:
+            200:
+                描述: 获取微信登录URL成功
+                示例:
+                    {
+                        "code": 0,
+                        "message": "获取微信登录URL成功",
+                        "data": {
+                            "login_url": "https://open.weixin.qq.com/connect/qrconnect?appid=wx123456789&redirect_uri=http%3A%2F%2Flocalhost%3A8000%2Fapi%2Fauth%2Fwechat%2Fcallback&response_type=code&scope=snsapi_login&state=abcdef123456#wechat_redirect",
+                            "state": "abcdef123456"
+                        },
+                        "pagination": null
+                    }
+            400:
+                描述: 获取微信登录URL失败
+                示例:
+                    {
+                        "code": 1006,
+                        "message": "获取微信登录URL失败",
+                        "data": null,
+                        "pagination": null
+                    }
+    """
     permission_classes = [permissions.AllowAny]
 
     def post(self, request):
@@ -181,7 +436,88 @@ class WechatLoginUrlView(APIView):
         )
 
 class WechatCallbackView(APIView):
-    """微信登录回调视图"""
+    """
+    微信登录回调视图
+    ---
+    get:
+        描述: 处理微信登录回调，由微信服务器调用
+        参数:
+            - name: code
+              description: 微信授权临时票据
+              required: true
+              type: string
+              example: "021ABC"
+            - name: state
+              description: 状态码，用于防止CSRF攻击
+              required: true
+              type: string
+              example: "abcdef123456"
+        响应:
+            200:
+                描述: 微信登录成功，返回重定向URL
+                示例:
+                    {
+                        "code": 0,
+                        "message": "微信登录成功",
+                        "data": {
+                            "redirect_url": "http://localhost:3000/auth/callback?access_token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...&refresh_token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...&is_new_user=false"
+                        },
+                        "pagination": null
+                    }
+            400:
+                描述: 微信登录失败
+                示例:
+                    {
+                        "code": 1001,
+                        "message": "微信登录失败",
+                        "data": null,
+                        "pagination": null
+                    }
+    post:
+        描述: 处理微信登录，由前端直接调用
+        参数:
+            - name: code
+              description: 微信授权临时票据
+              required: true
+              type: string
+              example: "021ABC"
+            - name: state
+              description: 状态码，用于防止CSRF攻击
+              required: true
+              type: string
+              example: "abcdef123456"
+        响应:
+            200:
+                描述: 微信登录成功
+                示例:
+                    {
+                        "code": 0,
+                        "message": "微信登录成功",
+                        "data": {
+                            "user": {
+                                "id": 1,
+                                "username": "wx_12345678",
+                                "phone": null,
+                                "email": null,
+                                "is_phone_verified": false,
+                                "date_joined": "2025-04-18T12:00:00Z"
+                            },
+                            "refresh": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+                            "access": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+                            "is_new_user": true
+                        },
+                        "pagination": null
+                    }
+            400:
+                描述: 微信登录失败
+                示例:
+                    {
+                        "code": 1001,
+                        "message": "微信登录失败",
+                        "data": null,
+                        "pagination": null
+                    }
+    """
     permission_classes = [permissions.AllowAny]
 
     def get(self, request):

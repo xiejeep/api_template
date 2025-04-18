@@ -38,7 +38,22 @@ class UserManager(BaseUserManager):
         return self.create_user(username=username, password=password, **extra_fields)
 
 class User(AbstractUser):
-    """自定义用户模型"""
+    """
+    自定义用户模型
+
+    字段说明:
+        - username: 用户名，继承自AbstractUser
+        - password: 密码，继承自AbstractUser
+        - phone: 手机号，唯一，可以为空
+        - is_phone_verified: 手机号是否已验证
+        - email: 邮箱，可以为空
+        - date_joined: 注册时间
+        - last_login_ip: 最后登录IP
+        - wechat_openid: 微信OpenID，唯一，可以为空
+        - wechat_unionid: 微信UnionID，唯一，可以为空
+        - wechat_nickname: 微信昵称，可以为空
+        - wechat_avatar: 微信头像地址，可以为空
+    """
     phone = models.CharField(_('手机号'), max_length=20, unique=True, null=True, blank=True)
     is_phone_verified = models.BooleanField(_('手机号已验证'), default=False)
     email = models.EmailField(_('email address'), blank=True, null=True)
@@ -64,7 +79,20 @@ class User(AbstractUser):
         return self.username or self.phone or self.email
 
 class VerificationCode(models.Model):
-    """验证码模型"""
+    """
+    验证码模型
+
+    字段说明:
+        - phone: 手机号
+        - code: 验证码
+        - purpose: 用途，可选值包括：
+            - register: 注册
+            - login: 登录
+            - reset_password: 重置密码
+        - created_at: 创建时间，自动设置为当前时间
+        - expires_at: 过期时间
+        - is_used: 是否已使用
+    """
     phone = models.CharField(_('手机号'), max_length=20)
     code = models.CharField(_('验证码'), max_length=10)
     purpose = models.CharField(_('用途'), max_length=20, choices=[
@@ -90,7 +118,16 @@ class VerificationCode(models.Model):
         return timezone.now() > self.expires_at
 
 class WechatLoginState(models.Model):
-    """微信登录状态模型"""
+    """
+    微信登录状态模型
+
+    字段说明:
+        - state: 状态码，唯一，用于防止CSRF攻击
+        - redirect_url: 登录成功后重定向的URL
+        - created_at: 创建时间，自动设置为当前时间
+        - expires_at: 过期时间
+        - is_used: 是否已使用
+    """
     state = models.CharField(_('状态码'), max_length=100, unique=True)
     redirect_url = models.URLField(_('重定向URL'), max_length=500)
     created_at = models.DateTimeField(_('创建时间'), auto_now_add=True)

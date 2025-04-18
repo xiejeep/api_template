@@ -4,7 +4,20 @@ from django.utils import timezone
 # Create your models here.
 
 class Task(models.Model):
-    """任务模型"""
+    """
+    任务模型
+
+    字段说明:
+        - title: 任务标题，最大长度200个字符
+        - description: 任务描述，可以为空
+        - status: 任务状态，可选值包括：
+            - pending: 待处理
+            - in_progress: 进行中
+            - completed: 已完成
+            - cancelled: 已取消
+        - created_at: 创建时间，自动设置为当前时间
+        - updated_at: 更新时间，自动更新
+    """
     STATUS_CHOICES = (
         ('pending', '待处理'),
         ('in_progress', '进行中'),
