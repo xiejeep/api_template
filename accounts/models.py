@@ -89,6 +89,7 @@ class VerificationCode(models.Model):
             - register: 注册
             - login: 登录
             - reset_password: 重置密码
+            - bind_phone: 绑定手机号
         - created_at: 创建时间，自动设置为当前时间
         - expires_at: 过期时间
         - is_used: 是否已使用
@@ -99,6 +100,7 @@ class VerificationCode(models.Model):
         ('register', _('注册')),
         ('login', _('登录')),
         ('reset_password', _('重置密码')),
+        ('bind_phone', _('绑定手机号')),
     ])
     created_at = models.DateTimeField(_('创建时间'), auto_now_add=True)
     expires_at = models.DateTimeField(_('过期时间'))

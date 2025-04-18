@@ -11,7 +11,8 @@ from .serializers import (
     PhoneCodeLoginSerializer,
     SendVerificationCodeSerializer,
     WechatLoginUrlSerializer,
-    WechatCallbackSerializer
+    WechatCallbackSerializer,
+    BindPhoneSerializer
 )
 from .sms import send_verification_code
 
@@ -460,7 +461,7 @@ class WechatCallbackView(APIView):
                         "code": 0,
                         "message": "微信登录成功",
                         "data": {
-                            "redirect_url": "http://localhost:3000/auth/callback?access_token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...&refresh_token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...&is_new_user=false"
+                            "redirect_url": "http://localhost:3000/auth/callback?access_token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...&refresh_token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...&is_new_user=false&needs_phone_binding=true"
                         },
                         "pagination": null
                     }
@@ -500,11 +501,14 @@ class WechatCallbackView(APIView):
                                 "phone": null,
                                 "email": null,
                                 "is_phone_verified": false,
-                                "date_joined": "2025-04-18T12:00:00Z"
+                                "date_joined": "2025-04-18T12:00:00Z",
+                                "wechat_nickname": "微信昵称",
+                                "wechat_avatar": "https://thirdwx.qlogo.cn/mmopen/..."
                             },
                             "refresh": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
                             "access": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-                            "is_new_user": true
+                            "is_new_user": true,
+                            "needs_phone_binding": true
                         },
                         "pagination": null
                     }
@@ -552,12 +556,102 @@ class WechatCallbackView(APIView):
                     'user': UserSerializer(serializer.validated_data['user']).data,
                     'refresh': serializer.validated_data['refresh'],
                     'access': serializer.validated_data['access'],
-                    'is_new_user': serializer.validated_data['is_new_user']
+                    'is_new_user': serializer.validated_data['is_new_user'],
+                    'needs_phone_binding': serializer.validated_data.get('needs_phone_binding', False)
                 },
                 message='微信登录成功'
             )
         return api_error_response(
             code=1001,
             message='微信登录失败',
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+class BindPhoneView(APIView):
+    """
+    绑定手机号视图
+    ---
+    post:
+        描述: 为当前登录用户绑定手机号
+        参数:
+            - name: phone
+              description: 手机号
+              required: true
+              type: string
+              example: "+8613800138000"
+            - name: code
+              description: 验证码
+              required: true
+              type: string
+              example: "123456"
+            - name: merge_accounts
+              description: 是否合并已存在的账号
+              required: false
+              type: boolean
+              default: false
+        响应:
+            200:
+                描述: 绑定成功
+                示例:
+                    {
+                        "code": 0,
+                        "message": "手机号绑定成功",
+                        "data": {
+                            "user": {
+                                "id": 1,
+                                "username": "wx_12345678",
+                                "phone": "+8613800138000",
+                                "email": null,
+                                "is_phone_verified": true,
+                                "date_joined": "2025-04-18T12:00:00Z"
+                            }
+                        },
+                        "pagination": null
+                    }
+            400:
+                描述: 绑定失败
+                示例:
+                    {
+                        "code": 1006,
+                        "message": "手机号绑定失败",
+                        "data": {
+                            "phone": ["该手机号已被其他账号使用"],
+                            "existing_user": true
+                        },
+                        "pagination": null
+                    }
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        serializer = BindPhoneSerializer(
+            instance=request.user,
+            data=request.data,
+            context={'request': request}
+        )
+        
+        if serializer.is_valid():
+            user = serializer.save()
+            return api_success_response(
+                data={'user': UserSerializer(user).data},
+                message='手机号绑定成功'
+            )
+            
+        # 特殊处理：如果是因为手机号已被其他账号使用
+        if 'existing_user' in serializer.errors.get('phone', {}):
+            return api_error_response(
+                code=1006,
+                message='该手机号已被其他账号使用',
+                data={
+                    'phone': serializer.errors.get('phone'),
+                    'existing_user': True
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+            
+        return api_error_response(
+            code=1006,
+            message='手机号绑定失败',
+            data=serializer.errors,
             status=status.HTTP_400_BAD_REQUEST
         )

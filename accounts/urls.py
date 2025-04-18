@@ -7,7 +7,8 @@ from .views import (
     SendVerificationCodeView,
     UserProfileView,
     WechatLoginUrlView,
-    WechatCallbackView
+    WechatCallbackView,
+    BindPhoneView
 )
 
 urlpatterns = [
@@ -20,6 +21,9 @@ urlpatterns = [
     # 微信登录
     path('wechat/login-url/', WechatLoginUrlView.as_view(), name='wechat-login-url'),
     path('wechat/callback/', WechatCallbackView.as_view(), name='wechat-callback'),
+    
+    # 账号互通
+    path('bind-phone/', BindPhoneView.as_view(), name='bind-phone'),
 
     # JWT令牌刷新
     path('token/refresh/', TokenRefreshView.as_view(), name='token-refresh'),

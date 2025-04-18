@@ -82,7 +82,12 @@ def send_verification_code(phone, purpose, expiry_minutes=5):
         expires_at=expires_at
     )
 
-    # 发送验证码
+    # 开发环境下直接返回成功
+    if settings.DEBUG:
+        logger.info(f"[开发环境] 模拟向 {phone} 发送验证码: {code}，用途: {purpose}，直接返回成功")
+        return True, verification
+
+    # 生产环境发送验证码
     sms_service = get_sms_service()
     success = sms_service.send_verification_code(phone, code, purpose)
 
@@ -90,6 +95,11 @@ def send_verification_code(phone, purpose, expiry_minutes=5):
 
 def verify_code(phone, code, purpose):
     """验证验证码是否有效"""
+    # 开发环境下，直接接受固定验证码"123456"
+    if settings.DEBUG and code == "123456":
+        logger.info(f"[开发环境] 验证码验证通过：{phone}, 用途: {purpose}, 使用固定验证码: 123456")
+        return True, "验证成功"
+        
     # 查找最近的未使用的验证码
     try:
         verification = VerificationCode.objects.filter(

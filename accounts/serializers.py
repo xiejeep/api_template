@@ -31,8 +31,8 @@ class UserSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ['id', 'username', 'phone', 'email', 'is_phone_verified', 'date_joined', 'last_login']
-        read_only_fields = ['id', 'is_phone_verified', 'date_joined', 'last_login']
+        fields = ['id', 'username', 'phone', 'email', 'is_phone_verified', 'date_joined', 'last_login', 'wechat_nickname', 'wechat_avatar']
+        read_only_fields = ['id', 'is_phone_verified', 'date_joined', 'last_login', 'wechat_nickname', 'wechat_avatar']
 
 class RegisterSerializer(serializers.Serializer):
     """注册序列化器"""
@@ -167,7 +167,7 @@ class SendVerificationCodeSerializer(serializers.Serializer):
 
     phone = PhoneNumberField(required=True)
     purpose = serializers.ChoiceField(
-        choices=['register', 'login', 'reset_password'],
+        choices=['register', 'login', 'reset_password', 'bind_phone'],
         required=True
     )
 
@@ -191,6 +191,8 @@ class SendVerificationCodeSerializer(serializers.Serializer):
         # 如果是登录或重置密码，检查手机号是否已注册
         if purpose in ['login', 'reset_password'] and not User.objects.filter(phone=phone).exists():
             raise serializers.ValidationError({"phone": _("该手机号未注册")})
+
+        # 对于bind_phone用途，不需要额外验证
 
         return attrs
 
@@ -287,7 +289,8 @@ class WechatCallbackSerializer(serializers.Serializer):
                 'refresh': str(refresh),
                 'access': str(refresh.access_token),
                 'is_new_user': is_new_user,
-                'redirect_url': state_obj.redirect_url
+                'redirect_url': state_obj.redirect_url,
+                'needs_phone_binding': is_new_user and not user.phone  # 新用户且没有手机号需要绑定
             }
         except WechatLoginError as e:
             raise serializers.ValidationError({'code': str(e)})
@@ -301,3 +304,53 @@ class WechatCallbackSerializer(serializers.Serializer):
         else:
             ip = request.META.get('REMOTE_ADDR')
         return ip
+
+class BindPhoneSerializer(serializers.Serializer):
+    """绑定手机号序列化器"""
+
+    phone = PhoneNumberField(required=True)
+    code = serializers.CharField(required=True)
+    merge_accounts = serializers.BooleanField(default=False)
+
+    def validate(self, attrs):
+        phone = attrs.get('phone')
+        code = attrs.get('code')
+        merge_accounts = attrs.get('merge_accounts')
+        user = self.context['request'].user
+
+        # 验证验证码
+        is_valid, message = verify_code(phone, code, 'bind_phone')
+        if not is_valid:
+            raise serializers.ValidationError({"code": message})
+
+        # 检查手机号是否已被其他账号使用
+        existing_user = User.objects.filter(phone=phone).first()
+        if existing_user and existing_user.id != user.id:
+            if not merge_accounts:
+                raise serializers.ValidationError({
+                    "phone": _("该手机号已被其他账号使用"),
+                    "existing_user": True
+                })
+
+            # 如果选择合并账号，需要将现有账号的信息合并到当前账号
+            # 这里只是一个简单的示例，实际合并逻辑可能更复杂
+            if not user.wechat_openid and existing_user.wechat_openid:
+                user.wechat_openid = existing_user.wechat_openid
+                user.wechat_unionid = existing_user.wechat_unionid
+                user.wechat_nickname = existing_user.wechat_nickname
+                user.wechat_avatar = existing_user.wechat_avatar
+
+            # 删除现有账号（或者标记为已合并）
+            existing_user.delete()
+
+        return attrs
+
+    def update(self, instance, validated_data):
+        phone = validated_data.get('phone')
+
+        # 更新用户手机号
+        instance.phone = phone
+        instance.is_phone_verified = True
+        instance.save(update_fields=['phone', 'is_phone_verified'])
+
+        return instance
