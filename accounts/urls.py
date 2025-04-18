@@ -8,7 +8,9 @@ from .views import (
     UserProfileView,
     WechatLoginUrlView,
     WechatCallbackView,
-    BindPhoneView
+    BindPhoneView,
+    WechatMiniLoginView,
+    WechatConfigDebugView
 )
 
 urlpatterns = [
@@ -21,6 +23,8 @@ urlpatterns = [
     # 微信登录
     path('wechat/login-url/', WechatLoginUrlView.as_view(), name='wechat-login-url'),
     path('wechat/callback/', WechatCallbackView.as_view(), name='wechat-callback'),
+    path('wechat/mini-login/', WechatMiniLoginView.as_view(), name='wechat-mini-login'),
+    path('wechat/config-debug/', WechatConfigDebugView.as_view(), name='wechat-config-debug'),
     
     # 账号互通
     path('bind-phone/', BindPhoneView.as_view(), name='bind-phone'),

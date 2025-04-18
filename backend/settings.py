@@ -181,6 +181,8 @@ WECHAT_APP_ID = env('WECHAT_APP_ID', default='')
 WECHAT_APP_SECRET = env('WECHAT_APP_SECRET', default='')
 WECHAT_REDIRECT_URI = env('WECHAT_REDIRECT_URI', default='http://localhost:8000/api/auth/wechat/callback')
 
+# 注意：微信小程序登录也使用上面的 WECHAT_APP_ID 和 WECHAT_APP_SECRET 配置
+
 # JWT设置
 from datetime import timedelta
 SIMPLE_JWT = {

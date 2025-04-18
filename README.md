@@ -47,6 +47,7 @@ backend/
    - 手机号+密码登录
    - 手机号+验证码登录
    - 微信登录
+   - 微信小程序登录
    - JWT认证，支持令牌刷新
 
 2. **短信验证码**
@@ -86,9 +87,10 @@ ALLOWED_HOSTS=localhost,127.0.0.1
 CORS_ALLOWED_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
 
 # 微信登录设置
-WECHAT_APP_ID=your-app-id
-WECHAT_APP_SECRET=your-app-secret
-WECHAT_REDIRECT_URI=http://localhost:8000/api/auth/wechat/callback
+# 注意: 微信网页登录和微信小程序登录共用同一套配置
+WECHAT_APP_ID=your-wechat-app-id
+WECHAT_APP_SECRET=your-wechat-app-secret
+WECHAT_REDIRECT_URI=https://your-domain.com/api/auth/wechat/callback
 ```
 
 ## API文档
@@ -361,6 +363,41 @@ WECHAT_REDIRECT_URI=http://localhost:8000/api/auth/wechat/callback
   }
   ```
 
+#### 微信小程序登录
+
+- **URL**: `/api/auth/wechat/mini-login/`
+- **方法**: POST
+- **请求体**:
+  ```json
+  {
+    "code": "023HG9Ga1SQEKc0QSNGa1Hgpvc3HG9GR"
+  }
+  ```
+- **响应**:
+  ```json
+  {
+    "code": 0,
+    "message": "微信小程序登录成功",
+    "data": {
+      "user": {
+        "id": 1,
+        "username": "微信用户_12345678",
+        "phone": null,
+        "email": null,
+        "is_phone_verified": false,
+        "date_joined": "2023-08-01T12:00:00Z",
+        "wechat_nickname": null,
+        "wechat_avatar": null
+      },
+      "refresh": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+      "access": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+      "is_new_user": true,
+      "needs_phone_binding": true
+    },
+    "pagination": null
+  }
+  ```
+
 ### 任务相关接口
 
 #### 获取任务列表
@@ -557,6 +594,8 @@ python manage.py migrate
    - 更新`SECRET_KEY`
    - 更新`ALLOWED_HOSTS`
    - 配置数据库连接
+   - 配置微信登录参数
+   - 配置微信小程序登录参数
 
 2. 收集静态文件：
    ```bash
@@ -566,6 +605,62 @@ python manage.py migrate
 3. 使用WSGI/ASGI服务器（如Gunicorn、uWSGI）运行应用
 
 4. 配置Nginx作为反向代理
+
+## 微信登录配置
+
+微信网页登录和微信小程序登录共用相同的配置参数，在 `.env` 文件中配置以下参数：
+
+```
+# 微信登录设置
+WECHAT_APP_ID=your-wechat-app-id
+WECHAT_APP_SECRET=your-wechat-app-secret
+WECHAT_REDIRECT_URI=https://your-domain.com/api/auth/wechat/callback
+```
+
+### 微信小程序客户端开发
+
+在微信小程序中调用 `wx.login()` 获取临时登录凭证 code：
+
+```javascript
+wx.login({
+  success: function(res) {
+    if (res.code) {
+      // 获取到登录凭证后发送到服务器
+      wx.request({
+        url: 'https://your-api-domain.com/api/auth/wechat/mini-login/',
+        method: 'POST',
+        data: {
+          code: res.code
+        },
+        success: function(response) {
+          if (response.data.code === 0) {
+            // 登录成功，保存用户信息和token
+            wx.setStorageSync('token', response.data.data.access);
+            wx.setStorageSync('refresh_token', response.data.data.refresh);
+            wx.setStorageSync('userInfo', response.data.data.user);
+            
+            // 如果是新用户，可能需要引导绑定手机号
+            if (response.data.data.is_new_user && response.data.data.needs_phone_binding) {
+              wx.navigateTo({
+                url: '/pages/bindPhone/bindPhone'
+              });
+            } else {
+              wx.switchTab({
+                url: '/pages/index/index'
+              });
+            }
+          } else {
+            wx.showToast({
+              title: '登录失败',
+              icon: 'none'
+            });
+          }
+        }
+      });
+    }
+  }
+});
+```
 
 ## 安全注意事项
 

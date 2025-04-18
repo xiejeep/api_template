@@ -12,9 +12,12 @@ from .serializers import (
     SendVerificationCodeSerializer,
     WechatLoginUrlSerializer,
     WechatCallbackSerializer,
-    BindPhoneSerializer
+    BindPhoneSerializer,
+    WechatMiniLoginSerializer
 )
 from .sms import send_verification_code
+import requests
+from django.conf import settings
 
 User = get_user_model()
 
@@ -562,7 +565,6 @@ class WechatCallbackView(APIView):
                 message='微信登录成功'
             )
         return api_error_response(
-            code=1001,
             message='微信登录失败',
             status=status.HTTP_400_BAD_REQUEST
         )
@@ -654,4 +656,91 @@ class BindPhoneView(APIView):
             message='手机号绑定失败',
             data=serializer.errors,
             status=status.HTTP_400_BAD_REQUEST
+        )
+
+class WechatMiniLoginView(APIView):
+    """
+    微信小程序登录视图
+    ---
+    post:
+        描述: 处理微信小程序登录
+        参数:
+            - name: code
+              description: 微信小程序登录临时凭证
+              required: true
+              type: string
+              example: "023HG9Ga1SQEKc0QSNGa1Hgpvc3HG9GR"
+        响应:
+            200:
+                描述: 微信小程序登录成功
+                示例:
+                    {
+                        "code": 0,
+                        "message": "微信小程序登录成功",
+                        "data": {
+                            "user": {
+                                "id": 1,
+                                "username": "wx_12345678",
+                                "phone": null,
+                                "email": null,
+                                "is_phone_verified": false,
+                                "date_joined": "2025-04-18T12:00:00Z",
+                                "wechat_nickname": "微信昵称",
+                                "wechat_avatar": "https://thirdwx.qlogo.cn/mmopen/..."
+                            },
+                            "refresh": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+                            "access": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+                            "is_new_user": true,
+                            "needs_phone_binding": true
+                        },
+                        "pagination": null
+                    }
+            400:
+                描述: 微信小程序登录失败
+                示例:
+                    {
+                        "code": 1001,
+                        "message": "微信小程序登录失败",
+                        "data": null,
+                        "pagination": null
+                    }
+    """
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        serializer = WechatMiniLoginSerializer(data=request.data, context={'request': request})
+        if serializer.is_valid():
+            return api_success_response(
+                data={
+                    'user': UserSerializer(serializer.validated_data['user']).data,
+                    'refresh': serializer.validated_data['refresh'],
+                    'access': serializer.validated_data['access'],
+                    'is_new_user': serializer.validated_data['is_new_user'],
+                    'needs_phone_binding': serializer.validated_data.get('needs_phone_binding', False)
+                },
+                message='微信小程序登录成功'
+            )
+        return api_error_response(
+            message='微信小程序登录失败',
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+# 添加一个调试视图来检查微信配置
+class WechatConfigDebugView(APIView):
+    """调试视图，用于检查微信配置"""
+    permission_classes = [permissions.AllowAny]
+    
+    def get(self, request):
+        from django.conf import settings
+        
+        config = {
+            'WECHAT_APP_ID': getattr(settings, 'WECHAT_APP_ID', '未设置'),
+            'WECHAT_APP_SECRET': '已设置' if getattr(settings, 'WECHAT_APP_SECRET', '') else '未设置',
+            'WECHAT_MINI_APP_ID': getattr(settings, 'WECHAT_MINI_APP_ID', '未设置'),
+            'WECHAT_MINI_APP_SECRET': '已设置' if getattr(settings, 'WECHAT_MINI_APP_SECRET', '') else '未设置',
+        }
+        
+        return api_success_response(
+            data=config,
+            message='当前微信配置'
         )

@@ -164,3 +164,59 @@ class WechatLogin:
 
 # 创建微信登录工具类实例
 wechat_login = WechatLogin()
+
+class WechatMiniLogin:
+    """微信小程序登录工具类"""
+    
+    # 获取小程序授权访问令牌API地址
+    ACCESS_TOKEN_URL = 'https://api.weixin.qq.com/sns/jscode2session'
+    
+    def __init__(self):
+        """初始化微信小程序登录工具类"""
+        # 使用与微信网页登录相同的配置参数
+        self.app_id = getattr(settings, 'WECHAT_APP_ID', '')
+        self.app_secret = getattr(settings, 'WECHAT_APP_SECRET', '')
+        
+        # 添加调试信息
+        print(f"读取到的微信小程序配置 - app_id: '{self.app_id}', app_secret长度: {len(self.app_secret) if self.app_secret else 0}")
+        
+        if not self.app_id or not self.app_secret:
+            logger.warning("微信登录配置缺失，请在settings.py中设置WECHAT_APP_ID和WECHAT_APP_SECRET")
+    
+    def get_session_info(self, code):
+        """
+        获取微信小程序会话信息
+        
+        Args:
+            code: 临时登录凭证
+            
+        Returns:
+            openid: 用户唯一标识
+            session_key: 会话密钥
+            unionid: 用户在开放平台的唯一标识符（如果有）
+        """
+        params = {
+            'appid': self.app_id,
+            'secret': self.app_secret,
+            'js_code': code,
+            'grant_type': 'authorization_code'
+        }
+        
+        # 添加调试信息
+        print(f"微信小程序请求参数: {params}")
+        
+        try:
+            response = requests.get(self.ACCESS_TOKEN_URL, params=params)
+            result = response.json()
+            
+            if 'errcode' in result and result['errcode'] != 0:
+                logger.error(f"获取微信小程序会话信息失败: {result}")
+                raise WechatLoginError(f"获取微信小程序会话信息失败: {result.get('errmsg', '未知错误')}")
+            
+            return result
+        except Exception as e:
+            logger.exception(f"获取微信小程序会话信息异常: {str(e)}")
+            raise WechatLoginError(f"获取微信小程序会话信息异常: {str(e)}")
+
+# 创建微信小程序登录工具类实例
+wechat_mini_login = WechatMiniLogin()

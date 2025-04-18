@@ -6,9 +6,19 @@ from rest_framework_simplejwt.tokens import RefreshToken
 import phonenumbers
 from .models import VerificationCode
 from .sms import verify_code
-from .wechat import wechat_login, WechatLoginError
+from .wechat import wechat_login, wechat_mini_login, WechatLoginError
+from django.core.validators import RegexValidator
+from django.conf import settings
+from django.db import transaction
+import requests
+import uuid
+import base64
+import json
+import datetime
+import logging
 
 User = get_user_model()
+logger = logging.getLogger(__name__)
 
 class PhoneNumberField(serializers.CharField):
     """手机号字段验证器"""
@@ -354,3 +364,81 @@ class BindPhoneSerializer(serializers.Serializer):
         instance.save(update_fields=['phone', 'is_phone_verified'])
 
         return instance
+
+class WechatMiniLoginSerializer(serializers.Serializer):
+    """微信小程序登录序列化器"""
+    code = serializers.CharField(required=True, help_text='微信小程序临时登录凭证')
+    
+    def validate(self, attrs):
+        """
+        验证登录凭证并获取用户信息
+        """
+        code = attrs.get('code')
+        
+        try:
+            # 获取微信小程序会话信息
+            session_info = wechat_mini_login.get_session_info(code)
+            
+            # 获取用户唯一标识
+            openid = session_info.get('openid')
+            unionid = session_info.get('unionid')
+            
+            if not openid:
+                raise serializers.ValidationError('获取微信用户信息失败')
+            
+            # 查找或创建用户
+            user = None
+            
+            # 优先通过unionid查找用户
+            if unionid:
+                try:
+                    user = User.objects.filter(wechat_unionid=unionid).first()
+                except User.DoesNotExist:
+                    pass
+            
+            # 通过openid查找用户
+            if not user:
+                try:
+                    user = User.objects.filter(wechat_openid=openid).first()
+                except User.DoesNotExist:
+                    pass
+            
+            is_new_user = False
+            
+            # 创建新用户
+            if not user:
+                is_new_user = True
+                user = User.objects.create(
+                    wechat_openid=openid,
+                    wechat_unionid=unionid,
+                    username=f'微信用户_{openid[:8]}',
+                )
+            else:
+                # 更新用户的openid和unionid
+                update_fields = []
+                if not user.wechat_openid and openid:
+                    user.wechat_openid = openid
+                    update_fields.append('wechat_openid')
+                if not user.wechat_unionid and unionid:
+                    user.wechat_unionid = unionid
+                    update_fields.append('wechat_unionid')
+                if update_fields:
+                    user.save(update_fields=update_fields)
+            
+            # 生成JWT令牌
+            refresh = RefreshToken.for_user(user)
+            
+            data = {
+                'user': UserSerializer(user).data,
+                'refresh': str(refresh),
+                'access': str(refresh.access_token),
+                'is_new_user': is_new_user,
+                'needs_phone_binding': not user.phone
+            }
+            
+            return data
+        except WechatLoginError as e:
+            raise serializers.ValidationError(str(e))
+        except Exception as e:
+            logger.exception(f"微信小程序登录异常: {str(e)}")
+            raise serializers.ValidationError(f"微信小程序登录异常: {str(e)}")
