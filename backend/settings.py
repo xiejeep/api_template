@@ -56,6 +56,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'corsheaders',
     'rest_framework_simplejwt',
+    'drf_yasg',
 
     # 自定义应用
     'api',

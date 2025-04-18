@@ -18,7 +18,32 @@ from .sms import send_verification_code
 User = get_user_model()
 
 class RegisterView(APIView):
-    """用户注册视图"""
+    """
+    用户注册视图
+    ---
+    post:
+        描述: 使用手机号和验证码注册新用户
+        参数:
+            - name: phone
+              description: 手机号
+              required: true
+              type: string
+            - name: code
+              description: 验证码
+              required: true
+              type: string
+            - name: password
+              description: 密码
+              required: true
+              type: string
+            - name: username
+              description: 用户名（可选）
+              required: false
+              type: string
+        响应:
+            200:
+                描述: 注册成功
+    """
     permission_classes = [permissions.AllowAny]
 
     def post(self, request):

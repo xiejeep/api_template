@@ -5,7 +5,27 @@ from .models import Task
 from .serializers import TaskSerializer
 
 class TaskViewSet(viewsets.ModelViewSet):
-    """任务视图集"""
+    """
+    任务管理API
+
+    list:
+        获取任务列表
+
+    create:
+        创建新任务
+
+    retrieve:
+        获取任务详情
+
+    update:
+        更新任务
+
+    partial_update:
+        部分更新任务
+
+    destroy:
+        删除任务
+    """
     queryset = Task.objects.all()
     serializer_class = TaskSerializer
     permission_classes = [permissions.IsAuthenticated]

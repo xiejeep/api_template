@@ -7,7 +7,7 @@
 - **框架**: Django 5.2, Django REST Framework
 - **数据库**: SQLite (开发环境), 可迁移至PostgreSQL (生产环境)
 - **认证**: JWT (JSON Web Token)
-- **API文档**: 本README文件
+- **API文档**: Swagger UI, ReDoc, 本README文件
 
 ## 项目结构
 
@@ -90,6 +90,19 @@ WECHAT_APP_ID=your-app-id
 WECHAT_APP_SECRET=your-app-secret
 WECHAT_REDIRECT_URI=http://localhost:8000/api/auth/wechat/callback
 ```
+
+## API文档
+
+本项目提供了三种API文档查看方式：
+
+1. **Swagger UI**: 交互式文档，可以直接在浏览器中测试API
+   - 访问地址：`/swagger/`
+
+2. **ReDoc**: 更清晰的文档展示方式，适合阅读
+   - 访问地址：`/redoc/`
+
+3. **JSON/YAML格式**: 可以导出为OpenAPI规范的JSON或YAML文件
+   - 访问地址：`/swagger.json`或`/swagger.yaml`
 
 ## API接口
 
@@ -485,6 +498,21 @@ WECHAT_REDIRECT_URI=http://localhost:8000/api/auth/wechat/callback
 ## 开发指南
 
 ### 安装依赖
+
+主要依赖包包括：
+
+```
+django==5.2
+djangorestframework==3.16.0
+django-environ==0.11.2
+django-cors-headers==4.3.1
+djangorestframework-simplejwt==5.3.1
+psycopg2-binary==2.9.9
+phonenumbers==8.13.32
+drf-yasg==1.21.10
+```
+
+安装所有依赖：
 
 ```bash
 pip install -r requirements.txt
